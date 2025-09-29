@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Bert</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<style>
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  font-family: Arial, sans-serif;
+  background: linear-gradient(135deg, #f5f7fa, #e6ebf0);
+  display: flex;
+  flex-direction: column;
+}
+
+.buttons {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+  flex-grow: 1;
+  padding: 0 10px 0 10px;
+}
+
+/* Botones de ítems -> CELESTES */
+button.menu-btn {
+  position: relative;
+  width: 100%;
+  font-size: 14px;
+  padding: 0;
+  border: none;
+  border-radius: 10px;
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 1px 2px 4px rgba(0,0,0,0.3);
+  background: #3498db; /* celeste */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2em;
+  transition: transform 0.1s, box-shadow 0.1s;
+}
+button.menu-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 2px 4px 6px rgba(0,0,0,0.4);
+}
+
+/* Contador en esquina -> ROJO */
+.counter {
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  background: #e74c3c; /* rojo */
+  color: white;
+  font-size: 12px;
+  font-weight: bold;
+  border-radius: 12px;
+  padding: 2px 6px;
+  display: none;
+}
+
+/* Footer */
+.total-actions {
+  padding: 10px;
+  border-top: 1px solid #ccc;
+  background: #fff;
+  box-sizing: border-box;
+}
+
+#total {
+  font-size: 32px;
+  font-weight: bold;
+  color: #2c3e50;
+  text-align: left;
+  margin-bottom: 6px;
+}
+
+.actions {
+  margin-bottom: 8px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.actions button {
+  width: 60px;
+  height: 60px;
+  font-size: 30px;
+  padding: 0;
+  border-radius: 10px;
+  box-shadow: 1px 2px 4px rgba(0,0,0,0.3);
+  color: #fff;
+  border: none;
+  transition: transform 0.1s, box-shadow 0.1s;
+}
+.actions button:hover {
+  transform: translateY(-2px);
+  box-shadow: 2px 4px 6px rgba(0,0,0,0.4);
+}
+
+/* Botón deshacer -> naranja con ícono más grande */
+.actions button.undo {
+  background: #e67e22;
+  font-size: 45px; /* ícono +50% */
+  line-height: 1;
+}
+
+/* Botón eliminar -> rojo */
+.actions button.reset {
+  background: #e74c3c;
+  font-size: 30px;
+}
+</style>
+</head>
+<body>
+
+<div class="buttons" id="menu"></div>
+
+<div class="total-actions">
+  <div id="total">Total: €0.00</div>
+  <div class="actions">
+    <button class="undo" onclick="undo()">⟲</button>
+    <button class="reset" onclick="resetTotal()">🗑</button>
+  </div>
+</div>
+
+<script>
+const items = [
+  {name:"PFAND", price:2},
+  {name:"FASSBIER / GREY GOOSE", price:5.5},
+  {name:"BEER / CIDER / RED BULL", price:5},
+  {name:"WEIZEN", price:6},
+  {name:"WEIN", price:6.5},
+  {name:"PROSECCO", price:7},
+  {name:"PROSECCO RB", price:9.5},
+  {name:"APEROL SP", price:8.5},
+  {name:"WASSER / LUFT / MEX", price:3.5},
+  {name:"PEPSI / SAFT / MIO", price:4.5},
+  {name:"SHOTS / SAFTSCHORLE", price:4},
+  {name:"LONG DRINKS", price:10},
+  {name:"JÄGER / VODKA RB", price:11},
+  {name:"VODKA RB GREY GOOSE", price:12.5}
+];
+
+let total = 0;
+let history = [];
+
+const menuDiv = document.getElementById('menu');
+
+items.forEach((item, index) => {
+  const btn = document.createElement('button');
+  btn.className = "menu-btn";
+  btn.innerHTML = `${item.name}<br>€${item.price}`;
+
+  const counter = document.createElement('span');
+  counter.className = "counter";
+  counter.id = `counter-${index}`;
+  btn.appendChild(counter);
+
+  btn.onclick = () => addItem(item, index);
+  menuDiv.appendChild(btn);
+});
+
+function adjustButtonHeights() {
+  const btns = document.querySelectorAll('.menu-btn');
+  const rows = Math.ceil(btns.length / 2);
+  const containerHeight = document.querySelector('.buttons').clientHeight;
+  const rowHeight = (containerHeight / rows) - 6;
+  btns.forEach(b => b.style.height = rowHeight + 'px');
+}
+
+window.addEventListener('resize', adjustButtonHeights);
+window.addEventListener('load', adjustButtonHeights);
+
+function addItem(item, index) {
+  total += item.price;
+  history.push({item, index});
+  updateTotal();
+
+  const counter = document.getElementById(`counter-${index}`);
+  let count = parseInt(counter.textContent.replace('+','')) || 0;
+  count++;
+  counter.textContent = `+${count}`;
+  counter.style.display = 'inline-block';
+}
+
+function undo() {
+  if (history.length > 0) {
+    const last = history.pop();
+    total -= last.item.price;
+    updateTotal();
+
+    const counter = document.getElementById(`counter-${last.index}`);
+    let count = parseInt(counter.textContent.replace('+','')) || 0;
+    count = Math.max(0, count - 1);
+    if (count === 0) {
+      counter.style.display = 'none';
+      counter.textContent = '';
+    } else {
+      counter.textContent = `+${count}`;
+    }
+  }
+}
+
+function resetTotal() {
+  total = 0;
+  history = [];
+  updateTotal();
+  document.querySelectorAll('.counter').forEach(c => {
+    c.style.display = 'none';
+    c.textContent = '';
+  });
+}
+
+function updateTotal() {
+  document.getElementById('total').textContent = `Total: €${total.toFixed(2)}`;
+}
+</script>
+
+</body>
+</html>
